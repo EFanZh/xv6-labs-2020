@@ -1,0 +1,4 @@
+[submodule "labs/01-util"]
+	path = labs/01-util
+	url = git://g.csail.mit.edu/xv6-labs-2020
+	branch = util

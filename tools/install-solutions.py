@@ -1,0 +1,26 @@
+#!/usr/bin/env python3
+
+import os;
+from os import path;
+
+
+def main():
+    os.chdir(path.dirname(path.dirname(path.abspath(__file__))))
+
+    for dir_path, _, file_names in os.walk('solutions'):
+        for file_name in file_names:
+            source = path.join(dir_path, file_name)
+            target = path.join('labs', path.relpath(source, 'solutions'))
+            link_path = path.relpath(source, path.dirname(target))
+
+            while True:
+                try:
+                    os.symlink(link_path, target)
+                except FileExistsError:
+                    os.remove(target)
+                else:
+                    break
+
+
+if __name__ == '__main__':
+    main()
