@@ -1,0 +1,12 @@
+on: push
+jobs:
+    tests:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v2
+            with:
+                submodules: recursive
+          - run: sudo apt-get update
+          - run: sudo apt-get install --no-install-recommends -y gcc-riscv64-linux-gnu qemu-system-misc
+          - run: tools/install-solutions
+          - run: tools/run-tests

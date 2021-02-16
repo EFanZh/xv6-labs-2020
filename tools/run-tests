@@ -1,0 +1,28 @@
+#!/usr/bin/env python3
+
+import os
+from os import path
+import subprocess
+
+
+_TESTS = [
+    (
+        '01-util',
+        [
+            'sleep',
+            'pingpong',
+        ],
+    ),
+]
+
+
+def main():
+    os.chdir(path.dirname(path.dirname(path.abspath(__file__))))
+
+    for lab, problems in _TESTS:
+        for problem in problems:
+            subprocess.run(["./grade-lab-util", problem], cwd=path.join('labs', lab), check=True)
+
+
+if __name__ == '__main__':
+    main()
