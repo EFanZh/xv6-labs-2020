@@ -1,0 +1,6 @@
+#!/bin/sh -e
+
+cd $(dirname "$0")/..
+
+git submodule foreach git clean -fd
+git submodule foreach git reset --hard
