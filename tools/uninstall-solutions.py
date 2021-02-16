@@ -2,20 +2,14 @@
 
 import os;
 from os import path;
+import subprocess
 
 
 def main():
     os.chdir(path.dirname(path.dirname(path.abspath(__file__))))
 
-    for dir_path, _, file_names in os.walk('solutions'):
-        for file_name in file_names:
-            source = path.join(dir_path, file_name)
-            target = path.join('labs', path.relpath(source, 'solutions'))
-
-            try:
-                os.remove(target)
-            except FileNotFoundError:
-                pass
+    subprocess.run(['git', 'submodule', 'foreach', 'git', 'clean', '-fd'], check=True)
+    subprocess.run(['git', 'submodule', 'foreach', 'git', 'reset', '--hard'], check=True)
 
 
 if __name__ == '__main__':
