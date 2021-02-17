@@ -11,47 +11,47 @@ static void inner() {
 
         printf("prime %d\n", filter);
 
-        for (;;) {
-            int buffer;
+        int buffer;
 
+        for (;;) {
             if (read(STDIN, &buffer, sizeof(buffer)) != 0) {
                 if (buffer % filter != 0) {
-                    int pipe_fds[2];
-
-                    pipe(pipe_fds);
-
-                    if (fork() == 0) {
-                        close(pipe_fds[1]);
-
-                        close(STDIN);
-                        dup(pipe_fds[0]);
-
-                        close(pipe_fds[0]);
-
-                        break;
-                    } else {
-                        close(pipe_fds[0]);
-
-                        write(pipe_fds[1], &buffer, sizeof(buffer));
-
-                        while (read(STDIN, &buffer, sizeof(buffer)) != 0) {
-                            if (buffer % filter != 0) {
-                                write(pipe_fds[1], &buffer, sizeof(buffer));
-                            }
-                        }
-
-                        close(pipe_fds[1]);
-
-                        int status;
-
-                        wait(&status);
-                    }
-
-                    return;
+                    break;
                 }
             } else {
                 return;
             }
+        }
+
+        int pipe_fds[2];
+
+        pipe(pipe_fds);
+
+        if (fork() == 0) {
+            close(pipe_fds[1]);
+
+            close(STDIN);
+            dup(pipe_fds[0]);
+
+            close(pipe_fds[0]);
+        } else {
+            close(pipe_fds[0]);
+
+            write(pipe_fds[1], &buffer, sizeof(buffer));
+
+            while (read(STDIN, &buffer, sizeof(buffer)) != 0) {
+                if (buffer % filter != 0) {
+                    write(pipe_fds[1], &buffer, sizeof(buffer));
+                }
+            }
+
+            close(pipe_fds[1]);
+
+            int status;
+
+            wait(&status);
+
+            break;
         }
     }
 }
