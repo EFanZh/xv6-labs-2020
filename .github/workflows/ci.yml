@@ -1,5 +1,10 @@
 on: push
 jobs:
+    code-format:
+        runs-on: ubuntu-20.04
+        steps:
+          - uses: actions/checkout@v2
+          - run: tools/check-code-format
     tests:
         runs-on: ubuntu-20.04
         steps:

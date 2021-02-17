@@ -1,0 +1,5 @@
+#!/bin/sh -e
+
+cd $(dirname "$0")/..
+
+find solutions -type f -name '*.c' -exec clang-format --Werror -n --verbose '{}' +
