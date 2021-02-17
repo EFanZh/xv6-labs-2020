@@ -12,6 +12,7 @@ _TESTS = [
             'sleep',
             'pingpong',
             'primes',
+            'find',
         ],
     ),
 ]

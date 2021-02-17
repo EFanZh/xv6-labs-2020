@@ -9,7 +9,7 @@ int main(int argc, char **argv) {
 
         exit(0);
     } else {
-        printf("Expect a single argument.");
+        printf("Usage: %s <DURATION>", argv[0]);
 
         exit(1);
     }
