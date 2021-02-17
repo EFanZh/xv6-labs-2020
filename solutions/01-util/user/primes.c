@@ -11,17 +11,17 @@ static void inner() {
 
         printf("prime %d\n", filter);
 
+        // Find the next prime.
+
         int buffer;
 
-        for (;;) {
-            if (read(STDIN, &buffer, sizeof(buffer)) != 0) {
-                if (buffer % filter != 0) {
-                    break;
-                }
-            } else {
+        do {
+            if (read(STDIN, &buffer, sizeof(buffer)) == 0) {
                 return;
             }
-        }
+        } while (buffer % filter == 0);
+
+        // Create child process.
 
         int pipe_fds[2];
 
@@ -30,10 +30,14 @@ static void inner() {
         if (fork() == 0) {
             close(pipe_fds[1]);
 
+            // Redirect read pipe to standard input.
+
             close(STDIN);
             dup(pipe_fds[0]);
 
             close(pipe_fds[0]);
+
+            // Go to start.
         } else {
             close(pipe_fds[0]);
 
