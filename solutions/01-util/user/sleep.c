@@ -9,7 +9,7 @@ int main(int argc, char **argv) {
 
         exit(0);
     } else {
-        printf("Usage: %s <DURATION>", argv[0]);
+        printf("Usage: %s <DURATION>\n", argv[0]);
 
         exit(1);
     }

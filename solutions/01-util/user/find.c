@@ -83,7 +83,7 @@ static int find(StringSlice path, StringSlice name) {
     const int fd = open(path.data, O_RDONLY);
 
     if (fd == -1) {
-        fprintf(STDERR, "Unable to open %s.", path.data);
+        fprintf(STDERR, "Unable to open %s.\n", path.data);
 
         return 1;
     }
@@ -91,7 +91,7 @@ static int find(StringSlice path, StringSlice name) {
     struct stat file_stat;
 
     if (fstat(fd, &file_stat) == -1) {
-        fprintf(STDERR, "Unable to get stat for %s.", path.data);
+        fprintf(STDERR, "Unable to get stat for %s.\n", path.data);
 
         close(fd);
 
@@ -105,7 +105,7 @@ static int find(StringSlice path, StringSlice name) {
             const int read_size = read(fd, &dir_entry, sizeof(dir_entry));
 
             if (read_size == -1) {
-                fprintf(STDERR, "Unable to read directory %s.", path.data);
+                fprintf(STDERR, "Unable to read directory %s.\n", path.data);
 
                 close(fd);
 
@@ -126,7 +126,7 @@ static int find(StringSlice path, StringSlice name) {
                 if (join_path(path, file_name, file_path_buffer, MAXPATH, &file_path_slice)) {
                     find(file_path_slice, name);
                 } else {
-                    fprintf(STDERR, "Path is too long.");
+                    fprintf(STDERR, "Path is too long.\n");
 
                     close(fd);
 
