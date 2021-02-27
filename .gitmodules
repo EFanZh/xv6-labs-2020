@@ -2,3 +2,7 @@
 	path = labs/01-util
 	url = git://g.csail.mit.edu/xv6-labs-2020
 	branch = util
+[submodule "labs/02-syscall"]
+	path = labs/02-syscall
+	url = git://g.csail.mit.edu/xv6-labs-2020
+	branch = syscall
