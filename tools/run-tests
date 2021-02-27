@@ -16,6 +16,12 @@ _TESTS = [
             'xargs',
         ],
     ),
+    (
+        'syscall',
+        [
+            'trace',
+        ]
+    ),
 ]
 
 
