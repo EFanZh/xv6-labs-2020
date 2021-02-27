@@ -1,7 +1,4 @@
 #include "kernel/types.h"
-
-// Include group separator.
-
 #include "kernel/fcntl.h"
 #include "kernel/fs.h"
 #include "kernel/param.h"

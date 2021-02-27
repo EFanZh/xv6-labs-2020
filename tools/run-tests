@@ -7,7 +7,7 @@ import subprocess
 
 _TESTS = [
     (
-        '01-util',
+        'util',
         [
             'sleep',
             'pingpong',
@@ -22,9 +22,9 @@ _TESTS = [
 def main():
     os.chdir(path.dirname(path.dirname(path.abspath(__file__))))
 
-    for lab, problems in _TESTS:
+    for (i, (lab, problems)) in enumerate(_TESTS, 1):
         for problem in problems:
-            subprocess.run(["./grade-lab-util", problem], cwd=path.join('labs', lab), check=True)
+            subprocess.run([f'./grade-lab-{lab}', problem], cwd=path.join('labs', f'{i:02}-{lab}'), check=True)
 
 
 if __name__ == '__main__':

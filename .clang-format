@@ -11,4 +11,5 @@ IndentGotoLabels: false
 # InsertTrailingCommas: Wrapped
 KeepEmptyLinesAtTheStartOfBlocks: false
 NamespaceIndentation: Inner
+SortIncludes: false
 SpacesInContainerLiterals: false
