@@ -6,3 +6,7 @@
 	path = labs/02-syscall
 	url = git://g.csail.mit.edu/xv6-labs-2020
 	branch = syscall
+[submodule "pgtbl"]
+	path = labs/03-pgtbl
+	url = git://g.csail.mit.edu/xv6-labs-2020
+	branch = pgtbl

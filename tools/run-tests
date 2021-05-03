@@ -23,6 +23,12 @@ _TESTS = [
             'sysinfo',
         ]
     ),
+    (
+        'pgtbl',
+        [
+            'pte printout',
+        ]
+    ),
 ]
 
 
