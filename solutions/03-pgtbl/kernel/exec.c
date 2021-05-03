@@ -9,43 +9,6 @@
 
 static int loadseg(pde_t *pgdir, uint64 addr, struct inode *ip, uint offset, uint sz);
 
-static pagetable_t pte_address(pte_t pte) {
-    const pte_t mask = (((pte_t)1 << 44) - 1) << 10;
-
-    return (pagetable_t)((pte & mask) << 2);
-}
-
-static void vmprint(pagetable_t page_table) {
-    printf("page table %p\n", page_table);
-
-    for (unsigned int i = 0; i != 512; ++i) {
-        const pte_t pte_1 = page_table[i];
-        const pagetable_t table_1 = pte_address(pte_1);
-
-        if ((pte_1 & 1) != 0) {
-            printf("..%d: pte %p pa %p\n", (int)i, (const void *)pte_1, table_1);
-
-            for (unsigned int j = 0; j != 512; ++j) {
-                const pte_t pte_2 = table_1[j];
-                const pagetable_t table_2 = pte_address(pte_2);
-
-                if ((pte_2 & 1) != 0) {
-                    printf(".. ..%d: pte %p pa %p\n", (int)j, (const void *)pte_2, table_2);
-
-                    for (unsigned int k = 0; k != 512; ++k) {
-                        const pte_t pte_3 = table_2[k];
-                        const pagetable_t table_3 = pte_address(pte_3);
-
-                        if ((pte_3 & 1) != 0) {
-                            printf(".. .. ..%d: pte %p pa %p\n", (int)k, (const void *)pte_3, table_3);
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
 int exec(char *path, char **argv) {
     char *s, *last;
     int i, off;
