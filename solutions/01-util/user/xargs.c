@@ -59,7 +59,8 @@ static bool string_push(String *target, char c) {
     return true;
 }
 
-typedef enum {
+typedef enum
+{
     ReadLineResult_Error,
     ReadLineResult_Done,
     ReadLineResult_Normal,
