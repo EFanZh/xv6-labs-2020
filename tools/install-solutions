@@ -5,12 +5,13 @@ from os import path
 
 
 def main():
-    os.chdir(path.dirname(path.dirname(path.abspath(__file__))))
+    project_dir = path.dirname(path.dirname(path.abspath(__file__)))
+    labs_dir = path.join(project_dir, 'labs')
 
-    for dir_path, _, file_names in os.walk('solutions'):
+    for dir_path, _, file_names in os.walk(solutions_dir):
         for file_name in file_names:
             source = path.join(dir_path, file_name)
-            target = path.join('labs', path.relpath(source, 'solutions'))
+            target = path.join(labs_dir, path.relpath(source, solutions_dir))
             link_path = path.relpath(source, path.dirname(target))
 
             while True:
