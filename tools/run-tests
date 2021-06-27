@@ -27,6 +27,7 @@ _TESTS = [
         'pgtbl',
         [
             'pte printout',
+            'usertests',
         ]
     ),
 ]
