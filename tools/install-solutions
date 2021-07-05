@@ -7,6 +7,7 @@ from os import path
 def main():
     project_dir = path.dirname(path.dirname(path.abspath(__file__)))
     labs_dir = path.join(project_dir, 'labs')
+    solutions_dir = path.join(project_dir, 'solutions')
 
     for dir_path, _, file_names in os.walk(solutions_dir):
         for file_name in file_names:
