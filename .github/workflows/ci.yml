@@ -1,17 +1,20 @@
+name: CI
 on: push
 jobs:
     code-format:
-        runs-on: ubuntu-20.04
+        runs-on: ubuntu-latest
         steps:
           - uses: actions/checkout@v2
           - run: tools/check-code-format
     tests:
-        runs-on: ubuntu-20.04
+        runs-on: ubuntu-latest
         steps:
           - uses: actions/checkout@v2
             with:
                 submodules: recursive
           - run: sudo apt-get update
           - run: sudo apt-get install --no-install-recommends -y gcc-riscv64-linux-gnu qemu-system-misc
+          - run: git config --global user.name EFanZh
+          - run: git config --global user.email efanzh@gmail.com
           - run: tools/install-solutions
           - run: tools/run-tests
