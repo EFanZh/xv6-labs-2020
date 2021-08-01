@@ -39,7 +39,7 @@ def main():
     for lab in os.listdir(labs_dir):
         for patch in patches:
             try:
-                _run_command(['git', '-C', path.join(labs_dir, lab), 'am', patch])
+                _run_command(['git', '-C', path.join(labs_dir, lab), 'am', '--committer-date-is-author-date', patch])
             except CalledProcessError:
                 _run_command(['git', '-C', path.join(labs_dir, lab), 'am', '--abort'])
 
