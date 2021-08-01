@@ -2,12 +2,50 @@
 
 import os
 from os import path
+import shlex
+import subprocess
+from subprocess import CalledProcessError
+
+
+def _run_command(args):
+    command_line = ' '.join(map(shlex.quote, args))
+
+    print("===> [{}]".format(command_line), flush=True)
+
+    try:
+        subprocess.run(args=args, check=True)
+    except CalledProcessError:
+        print("<=== [{}] [Failed]".format(command_line), flush=True)
+
+        raise
+
+    print("<=== [{}] [OK]".format(command_line), flush=True)
 
 
 def main():
     project_dir = path.dirname(path.dirname(path.abspath(__file__)))
     labs_dir = path.join(project_dir, 'labs')
     solutions_dir = path.join(project_dir, 'solutions')
+
+    # Reset submodules.
+
+    _run_command(['git', '-C', project_dir, 'submodule', 'update', '--init', '-f', '--recursive'])
+
+    # Apply patches.
+
+    patches_dir = path.join(project_dir, 'patches')
+    patches = [path.join(patches_dir, patch) for patch in os.listdir(patches_dir)]
+
+    for lab in os.listdir(labs_dir):
+        for patch in patches:
+            try:
+                _run_command(['git', '-C', path.join(labs_dir, lab), 'am', patch])
+            except CalledProcessError:
+                _run_command(['git', '-C', path.join(labs_dir, lab), 'am', '--abort'])
+
+                raise
+
+    # Install solutions.
 
     for dir_path, _, file_names in os.walk(solutions_dir):
         for file_name in file_names:

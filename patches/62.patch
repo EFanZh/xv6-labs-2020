@@ -1,0 +1,233 @@
+From ff309de4980a74b8304edb0715e8a4ea70a9dd25 Mon Sep 17 00:00:00 2001
+From: Jade <software@lfcode.ca>
+Date: Fri, 12 Mar 2021 10:16:08 -0800
+Subject: [PATCH 1/3] Fix a linker error complaining of _entry not being found
+
+It needed to be marked global.
+---
+ kernel/entry.S | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/kernel/entry.S b/kernel/entry.S
+index b72ddbc..9b7eec0 100644
+--- a/kernel/entry.S
++++ b/kernel/entry.S
+@@ -3,6 +3,7 @@
+         # kernel.ld causes the following code to
+         # be placed at 0x80000000.
+ .section .text
++.globl _entry
+ _entry:
+ 	# set up a stack for C.
+         # stack0 is declared in start.c,
+-- 
+2.31.1.windows.1
+
+
+From a65e6c5cff50a385d5c19eaa68d60c507b17882c Mon Sep 17 00:00:00 2001
+From: Jade <software@lfcode.ca>
+Date: Fri, 12 Mar 2021 10:16:13 -0800
+Subject: [PATCH 2/3] Add trivial support for PMPs, fixes boot on newer qemu
+
+We were previously noncompliant with the RISC-V specification, and so
+was qemu: if there are no PMP registers configured, according to the
+spec, any access to memory, including instruction fetch, from S- or U-
+mode, should fail (see section 3.6.1 of the RISC-V privileged spec).
+
+However, qemu was not enforcing this properly prior to
+https://github.com/qemu/qemu/commit/d102f19a208. Running a qemu newer
+than this would get stuck in an infinite loop hitting the exception
+vector repeatedly.
+
+This commit adds trivial support for the PMP registers, writing a value
+such that all accesses from S- and U- mode have their access managed
+solely by the page tables. This restores the previous behaviour.
+
+Further, it makes the machine mode timer vector check if it receives an
+unexpected interrupt if so, jump to a specific infinite loop. This
+should make any potential future occurrences of interrupt issues more
+obvious.
+---
+ kernel/kernelvec.S | 18 ++++++++++++++++--
+ kernel/riscv.h     | 23 +++++++++++++++++++++++
+ kernel/start.c     | 28 ++++++++++++++++++++++++++++
+ 3 files changed, 67 insertions(+), 2 deletions(-)
+
+diff --git a/kernel/kernelvec.S b/kernel/kernelvec.S
+index 3e9d3e9..4ee930b 100644
+--- a/kernel/kernelvec.S
++++ b/kernel/kernelvec.S
+@@ -85,6 +85,11 @@ kernelvec:
+         // return to whatever we were doing in the kernel.
+         sret
+ 
++// help: if you hit these, an unexpected exception/interrupt happened in M-mode.
++// use `info registers` in the qemu monitor to get the relevant CSRs.
++unexpected_exc: j unexpected_exc
++unexpected_int: j unexpected_int
++
+         #
+         # machine-mode timer interrupt.
+         #
+@@ -95,12 +100,21 @@ timervec:
+         # scratch[0,8,16] : register save area.
+         # scratch[32] : address of CLINT's MTIMECMP register.
+         # scratch[40] : desired interval between interrupts.
+-        
++
+         csrrw a0, mscratch, a0
+         sd a1, 0(a0)
+         sd a2, 8(a0)
+         sd a3, 16(a0)
+ 
++        csrr a1, mcause
++        // we should not get exceptions in M-mode. if we do, something went
++        // very wrong and we should explicitly jump to an infinite loop for the
++        // purpose.
++        bgez a1, unexpected_exc
++        li a2, (1<<63 | 7)
++        // likewise for any interrupts that are not machine timer interrupts.
++        bne a1, a2, unexpected_int
++
+         # schedule the next timer interrupt
+         # by adding interval to mtimecmp.
+         ld a1, 32(a0) # CLINT_MTIMECMP(hart)
+@@ -110,7 +124,7 @@ timervec:
+         sd a3, 0(a1)
+ 
+         # raise a supervisor software interrupt.
+-	li a1, 2
++        li a1, 2
+         csrw sip, a1
+ 
+         ld a3, 16(a0)
+diff --git a/kernel/riscv.h b/kernel/riscv.h
+index 0aec003..25614b1 100644
+--- a/kernel/riscv.h
++++ b/kernel/riscv.h
+@@ -38,6 +38,29 @@ w_mepc(uint64 x)
+   asm volatile("csrw mepc, %0" : : "r" (x));
+ }
+ 
++// physical memory protection CSRs
++#define PMP_R (1L << 0)
++#define PMP_W (1L << 1)
++#define PMP_X (1L << 2)
++// naturally aligned power of two
++#define PMP_MATCH_NAPOT (3L << 3)
++
++// we only implement accessing one PMP register
++
++// write to the first 8 PMP configuration registers
++static inline void
++w_pmpcfg0(uint64 x)
++{
++  asm volatile("csrw pmpcfg0, %0" : : "r" (x));
++}
++
++// write to the address for PMP region 0
++static inline void
++w_pmpaddr0(uint64 x)
++{
++  asm volatile("csrw pmpaddr0, %0" : : "r" (x));
++}
++
+ // Supervisor Status Register, sstatus
+ 
+ #define SSTATUS_SPP (1L << 8)  // Previous mode, 1=Supervisor, 0=User
+diff --git a/kernel/start.c b/kernel/start.c
+index 4eb6c2d..382c490 100644
+--- a/kernel/start.c
++++ b/kernel/start.c
+@@ -7,6 +7,8 @@
+ void main();
+ void timerinit();
+ 
++static void pmpinit();
++
+ // entry.S needs one stack per CPU.
+ __attribute__ ((aligned (16))) char stack0[4096 * NCPU];
+ 
+@@ -45,10 +47,36 @@ start()
+   int id = r_mhartid();
+   w_tp(id);
+ 
++  // allow access to all physical memory by S mode
++  pmpinit();
++
+   // switch to supervisor mode and jump to main().
+   asm volatile("mret");
+ }
+ 
++// configures the pmp registers trivially so we can boot. it is not permitted
++// to jump to S mode without having these configured as instruction fetch will
++// fail, however we do not actually use them for protection in xv6, so we just
++// need to put something trivial there.
++//
++// see section 3.6.1 "Physical Memory Protection CSRs" in the RISC-V privileged
++// specification (v20190608)
++//
++// "If no PMP entry matches an M-mode access, the access succeeds. If no PMP
++// entry matches an S-mode or U-mode access, but at least one PMP entry is
++// implemented, the access fails." (3.6.1)
++static void
++pmpinit()
++{
++  // see figure 3.27 "PMP address register format, RV64" and table 3.10 "NAPOT
++  // range encoding in PMP address and configuration registers" in the RISC-V
++  // privileged specification
++  // we set the bits such that this matches any 56-bit physical address
++  w_pmpaddr0((~0L) >> 10);
++  // then we allow the access
++  w_pmpcfg0(PMP_R | PMP_W | PMP_X | PMP_MATCH_NAPOT);
++}
++
+ // set up to receive timer interrupts in machine mode,
+ // which arrive at timervec in kernelvec.S,
+ // which turns them into software interrupts for
+-- 
+2.31.1.windows.1
+
+
+From 5d4f141b1055f266a2bcbbbff278566609e9030e Mon Sep 17 00:00:00 2001
+From: Jade <software@lfcode.ca>
+Date: Wed, 16 Jun 2021 19:32:20 -0700
+Subject: [PATCH 3/3] Fix incorrect bit math
+
+Thanks Virtual-Machine! It was previously accidentally shifting signed
+numbers which did nothing.
+
+```
+/* original */
+[cling]$ #include <stdio.h>
+[cling]$ unsigned long long v = ((~0L) >> 10)
+(unsigned long long) 18446744073709551615
+[cling]$ printf("%llx", v)
+ffffffffffffffff(int) 16
+
+/* corrected: */
+[cling]$ v = ((~0ULL) >> 10)
+(unsigned long long) 18014398509481983
+[cling]$ printf("%llx", v)
+3fffffffffffff(int) 14
+```
+---
+ kernel/start.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/kernel/start.c b/kernel/start.c
+index 382c490..d1babf9 100644
+--- a/kernel/start.c
++++ b/kernel/start.c
+@@ -72,7 +72,7 @@ pmpinit()
+   // range encoding in PMP address and configuration registers" in the RISC-V
+   // privileged specification
+   // we set the bits such that this matches any 56-bit physical address
+-  w_pmpaddr0((~0L) >> 10);
++  w_pmpaddr0((~0ULL) >> 10);
+   // then we allow the access
+   w_pmpcfg0(PMP_R | PMP_W | PMP_X | PMP_MATCH_NAPOT);
+ }
+-- 
+2.31.1.windows.1
+
